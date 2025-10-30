@@ -19,6 +19,22 @@ train: prepare-data
 		--learning-rate 1e-3 \
 		--num-epochs 20
 
+.PHONY: train-large
+
+train-large: prepare-data
+	python3 train.py \
+		--train-data data/train.txt \
+		--val-data data/val.txt \
+		--output-dir output \
+		--vocab-size 5000 \
+		--d-model 512 \
+		--num-heads 4 \
+		--num-layers 6 \
+		--max-len 64 \
+		--batch-size 8 \
+		--learning-rate 5e-4 \
+		--num-epochs 100
+
 .PHONY: chat
 
 chat:
