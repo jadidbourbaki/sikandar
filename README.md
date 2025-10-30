@@ -42,7 +42,10 @@ make chat
 
 ## Running sikandar on Google Colab
 
-You first need to add this repository to your colab notebook
+You first need to add this repository to your colab notebook. 
+
+Side note: make sure to use the HTTPS url for the repo when working
+with Google Colab. Setting up SSH in Colab is kind of tedious.
 
 ```bash
 !git clone SIKANDAR_REPO
@@ -51,7 +54,7 @@ You first need to add this repository to your colab notebook
 Then you need to install the requirements:
 ```bash
 %cd sikandar
-!pip install -r requirements.txt
+!pip install -r colab-requirements.txt --no-deps
 ```
 
 It is helpful to check if a GPU is available:

@@ -1,0 +1,19 @@
+# Minimal dependencies for Google Colab
+# Avoid installing/upgrading Jupyter, IPython, ipykernel, tornado, pyzmq, etc.
+# PyTorch is preinstalled on Colab; do NOT pin/upgrade it here.
+
+# Core runtime deps used by this project
+datasets>=2.14.0
+huggingface-hub>=0.20.0
+accelerate>=0.26.0
+
+tqdm>=4.66.0
+numpy>=1.24.0
+
+# Optional: useful but safe
+# einops>=0.6.0
+
+# NOTE:
+# - Install with: pip install -r colab-requirements.txt --no-deps
+#   then, if needed, run: pip install --upgrade --no-deps datasets huggingface-hub accelerate tqdm numpy
+# - This prevents pip from upgrading Colab's system packages.
