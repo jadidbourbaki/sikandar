@@ -182,11 +182,12 @@ cython_debug/
 .abstra/
 
 # Visual Studio Code
-#  Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
-#  that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
-#  and can be added to the global gitignore or merged into this file. However, if you prefer, 
-#  you could uncomment the following to ignore the entire vscode folder
-# .vscode/
+.vscode/
+.vscode-test
+*.code-workspace
+
+# Local History for Visual Studio Code
+.history/
 
 # Ruff stuff:
 .ruff_cache/
@@ -205,3 +206,34 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Machine Learning / PyTorch specific
+# Model checkpoints and outputs
+output/
+*.pt
+*.pth
+*.ckpt
+*.pb
+*.h5
+*.pkl
+*.joblib
+
+# TensorBoard logs
+runs/
+logs/
+*.log
+
+# Jupyter notebook checkpoints (already covered but being explicit)
+.ipynb_checkpoints/
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Training data
+data/
