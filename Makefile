@@ -17,7 +17,7 @@ train: prepare-data
 		--max-len 256 \
 		--batch-size 64 \
 		--learning-rate 1e-3 \
-		--num-epochs 100
+		--num-epochs 50
 
 .PHONY: chat
 
@@ -53,7 +53,7 @@ train-small: prepare-data
 		--max-len 128 \
 		--batch-size 16 \
 		--learning-rate 3e-4 \
-		--num-epochs 50
+		--num-epochs 30
 
 .PHONY: test
 
