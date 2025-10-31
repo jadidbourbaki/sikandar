@@ -26,7 +26,7 @@ Validate the code by running the tests:
 make test
 ```
 
-Before using chat, you first need to train sikandar using
+Before generating stories, you first need to train sikandar using
 
 ```bash
 make train
@@ -34,10 +34,10 @@ make train
 
 the train Makefile target also downloads and prepares the right dataset.
 
-After training you can start an interactive chat session using
+After training you can start generating stories using
 
 ```bash
-make chat
+make generate PROMPT="once upon a time"
 ```
 
 ## Running sikandar on Google Colab
@@ -59,7 +59,7 @@ Then you need to install the requirements:
 
 It is helpful to check if a GPU is available:
 
-```bash
+```python
 import torch
 print(f"gpu available: {torch.cuda.is_available()}")
 print(f"gpu name: {torch.cuda.get_device_name(0)}")
@@ -71,15 +71,16 @@ Finally, we can train using the Google Colab notebook:
 !make train
 ```
 
-For more intensive training (better chats) you can use the target:
+We can then download the model
 
-```bash
-make train-large
-```
-
-We can then download 
-
-# 4. Download model
+```python
 from google.colab import files
 files.download('output/model.pt')
 files.download('output/vocab.json')
+```
+
+or generate the story directly
+
+```bash
+!make generate PROMPT="once upon a time"
+```

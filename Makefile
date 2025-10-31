@@ -1,7 +1,7 @@
 .PHONY: prepare-data
 
 prepare-data:
-	python3 prepare_data.py --output-dir data --max-train 2260 --max-val 119
+	python3 prepare_data.py --output-dir data --max-train 10000 --max-val 1000
 
 .PHONY: train
 
@@ -11,36 +11,33 @@ train: prepare-data
 		--val-data data/val.txt \
 		--output-dir output \
 		--vocab-size 5000 \
-		--d-model 128 \
-		--num-heads 4 \
-		--num-layers 3 \
-		--max-len 64 \
+		--d-model 256 \
+		--num-heads 8 \
+		--num-layers 4 \
+		--max-len 128 \
 		--batch-size 8 \
-		--learning-rate 1e-3 \
-		--num-epochs 20
-
-.PHONY: train-large
-
-train-large: prepare-data
-	python3 train.py \
-		--train-data data/train.txt \
-		--val-data data/val.txt \
-		--output-dir output \
-		--vocab-size 5000 \
-		--d-model 512 \
-		--num-heads 4 \
-		--num-layers 6 \
-		--max-len 64 \
-		--batch-size 8 \
-		--learning-rate 5e-4 \
-		--num-epochs 100
+		--learning-rate 3e-4 \
+		--num-epochs 50
 
 .PHONY: chat
 
 chat:
 	python3 chat.py \
 		--model-path output/model.pt \
-		--vocab-path output/vocab.json 
+		--vocab-path output/vocab.json
+
+.PHONY: generate
+
+generate:
+	@echo "Generating story with prompt: $(PROMPT)"
+	python3 generate.py \
+		--model-path output/model.pt \
+		--vocab-path output/vocab.json \
+		--prompt $(PROMPT) \
+		--num-samples 1 \
+		--max-tokens 200 \
+		--temperature 0.7 \
+		--top-k 50 
 
 .PHONY: test
 

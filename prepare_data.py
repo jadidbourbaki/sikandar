@@ -1,79 +1,80 @@
 """
-Download and prepare everyday conversations dataset for training
+Download and prepare TinyStories dataset for story generation training
 """
 
 import argparse
 import logging
 from pathlib import Path
 from datasets import load_dataset
-
-USER_PREFIX = "user: "
-ASSISTANT_PREFIX = "assistant: "
-DATASET_NAME = "HuggingFaceTB/everyday-conversations-llama3.1-2k"
+from dataclasses import dataclass
 
 
-def prepare_dataset(output_dir: Path, max_train_samples: int = 5000,
-                    max_val_samples: int = 500) -> None:
+@dataclass
+class DatasetConfig:
+    """Configuration for a dataset"""
+    name: str = "roneneldan/TinyStories"
+    train_split: str = "train"
+    val_split: str = "validation"
+    max_train_samples: int = 10000
+    max_val_samples: int = 1000
+
+
+def prepare_dataset(output_dir: Path, dataset_config: DatasetConfig) -> None:
     """
-    Download a HuggingFace dataset and prepare it for training
+    Download dataset from HuggingFace and prepare it for training
 
     Args:
         output_dir: Directory to save train.txt and val.txt
-        max_train_samples: Maximum number of training dialogues to use
-        max_val_samples: Maximum number of validation dialogues to use
+        max_train_samples: Maximum number of training stories to use
+        max_val_samples: Maximum number of validation stories to use
     """
 
     logging.info(
-        "downloading %s dataset from HuggingFace...", DATASET_NAME)
+        "downloading %s dataset from HuggingFace...", dataset_config.name)
 
-    dataset = load_dataset(DATASET_NAME)
+    # TinyStories dataset has 'train' and 'validation' splits
+    dataset = load_dataset(dataset_config.name)
 
-    train_dataset = dataset["train_sft"]
-    val_dataset = dataset["test_sft"]
+    train_dataset = dataset.get(dataset_config.train_split, dataset.get(
+        dataset_config.train_split.title(), None))
+    val_dataset = dataset.get(dataset_config.val_split, dataset.get(
+        dataset_config.val_split.title(), None))
+
+    if train_dataset is None:
+        raise ValueError("Could not find training split in dataset")
+    if val_dataset is None:
+        raise ValueError("Could not find validation split in dataset")
 
     logging.info("dataset loaded. train: %d samples, val: %d samples",
                  len(train_dataset), len(val_dataset))
 
-    # Extract messages from dialogues
+    # Extract story texts
     train_lines = []
     val_lines = []
 
     logging.info("processing training data...")
-    train_samples = train_dataset.take(max_train_samples)
+    train_samples = train_dataset.take(dataset_config.max_train_samples)
     for i, example in enumerate(train_samples):
-        messages = example['messages']
-        for msg in messages:
-            content = msg.get('content', '')
-            role = msg.get('role', 'user')
-            if content and content.strip():
-                # add role prefix to help model distinguish speakers
-                if role == 'user':
-                    train_lines.append(f"{USER_PREFIX}{content.strip()}")
-                else:
-                    train_lines.append(f"{ASSISTANT_PREFIX}{content.strip()}")
+        # TinyStories has a 'text' field with the story
+        story_text = example.get('text', example.get('story', ''))
+        if story_text and story_text.strip():
+            train_lines.append(story_text.strip())
 
         if (i + 1) % 1000 == 0:
-            logging.info("processed %d/%d training dialogues",
-                         i + 1, max_train_samples)
+            logging.info("processed %d/%d training stories",
+                         i + 1, dataset_config.max_train_samples)
 
     logging.info("processing validation data...")
 
-    val_samples = val_dataset.take(max_val_samples)
+    val_samples = val_dataset.take(dataset_config.max_val_samples)
     for i, example in enumerate(val_samples):
-        messages = example['messages']
-        for msg in messages:
-            content = msg.get('content', '')
-            role = msg.get('role', 'user')
-            if content and content.strip():
-                # Add role prefix to help model distinguish speakers
-                if role == 'user':
-                    val_lines.append(f"{USER_PREFIX}{content.strip()}")
-                else:
-                    val_lines.append(f"{ASSISTANT_PREFIX}{content.strip()}")
+        story_text = example.get('text', example.get('story', ''))
+        if story_text and story_text.strip():
+            val_lines.append(story_text.strip())
 
         if (i + 1) % 100 == 0:
-            logging.info("Processed %d/%d validation dialogues",
-                         i + 1, max_val_samples)
+            logging.info("Processed %d/%d validation stories",
+                         i + 1, dataset_config.max_val_samples)
 
     # save to files
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -101,10 +102,10 @@ def prepare_data() -> None:
         description="Prepare a dataset for training")
     parser.add_argument('--output-dir', type=str, default='data',
                         help='directory to save train.txt and val.txt')
-    parser.add_argument('--max-train', type=int, default=5000,
-                        help='maximum number of training samples to use')
-    parser.add_argument('--max-val', type=int, default=500,
-                        help='maximum number of validation samples to use')
+    parser.add_argument('--max-train', type=int, default=10000,
+                        help='maximum number of training stories to use')
+    parser.add_argument('--max-val', type=int, default=1000,
+                        help='maximum number of validation stories to use')
 
     args = parser.parse_args()
 
@@ -112,8 +113,10 @@ def prepare_data() -> None:
 
     prepare_dataset(
         output_dir=Path(args.output_dir),
-        max_train_samples=args.max_train,
-        max_val_samples=args.max_val
+        dataset_config=DatasetConfig(
+            max_train_samples=args.max_train,
+            max_val_samples=args.max_val
+        )
     )
 
 
