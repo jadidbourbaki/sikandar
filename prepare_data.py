@@ -19,46 +19,37 @@ def prepare_dataset(output_dir: Path) -> None:
     """
 
     logging.info("downloading TinyShakespeare dataset from HuggingFace...")
-    dataset = load_dataset("karpathy/tiny_shakespeare")
+    dataset = load_dataset("Trelis/tiny-shakespeare")
 
-    # TinyShakespeare is one continuous text, typically in 'train' split
-    train_split = dataset.get("train", dataset.get("Train", None))
-    if train_split is None:
+    # Trelis/tiny-shakespeare already has train/test splits (90/10)
+    train_dataset = dataset.get("train", dataset.get("Train", None))
+    val_dataset = dataset.get("test", dataset.get("Test", None))
+
+    if train_dataset is None:
         raise ValueError(
             "Could not find 'train' split in TinyShakespeare dataset")
+    if val_dataset is None:
+        raise ValueError(
+            "Could not find 'test' split in TinyShakespeare dataset")
 
-    # Extract the text - TinyShakespeare usually has 'text' field with one entry
-    full_text = ""
-    if len(train_split) > 0:
-        # Try different ways to get the text
-        first_item = train_split[0] if isinstance(
-            train_split, list) else train_split
-        if isinstance(first_item, dict):
-            full_text = first_item.get('text', '')
-        elif isinstance(first_item, str):
-            full_text = first_item
-        else:
-            # Try accessing directly from dataset
-            full_text = train_split['text'][0] if 'text' in train_split.features else str(
-                train_split[0])
+    logging.info("dataset loaded. train: %d rows, test: %d rows",
+                 len(train_dataset), len(val_dataset))
 
-    if not full_text:
-        raise ValueError("Could not extract text from TinyShakespeare dataset")
+    # Extract text from each row (dataset has 'Text' field)
+    train_lines = []
+    val_lines = []
 
-    logging.info("TinyShakespeare: %d characters total", len(full_text))
+    logging.info("processing training data...")
+    for example in train_dataset:
+        text = example.get('Text', example.get('text', ''))
+        if text and text.strip():
+            train_lines.append(text.strip())
 
-    # Split 90/10 for train/val (same as Karpathy's nanoGPT)
-    split_idx = int(len(full_text) * 0.9)
-    train_text = full_text[:split_idx]
-    val_text = full_text[split_idx:]
-
-    # Split into lines
-    train_lines = train_text.split('\n')
-    val_lines = val_text.split('\n')
-
-    # Filter empty lines
-    train_lines = [line.strip() for line in train_lines if line.strip()]
-    val_lines = [line.strip() for line in val_lines if line.strip()]
+    logging.info("processing validation data...")
+    for example in val_dataset:
+        text = example.get('Text', example.get('text', ''))
+        if text and text.strip():
+            val_lines.append(text.strip())
 
     logging.info("split TinyShakespeare: %d train lines, %d val lines",
                  len(train_lines), len(val_lines))

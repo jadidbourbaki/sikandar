@@ -29,13 +29,13 @@ chat:
 .PHONY: generate
 
 generate:
-	@echo "Generating story with prompt: $(PROMPT)"
+	@echo "Generating text with prompt: $(PROMPT)"
 	python3 generate.py \
 		--model-path output/model.pt \
 		--vocab-path output/vocab.json \
 		--prompt $(PROMPT) \
 		--num-samples 1 \
-		--max-tokens 200 \
+		--max-tokens 500 \
 		--temperature 0.7 \
 		--top-k 50 
 

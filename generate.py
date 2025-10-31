@@ -1,6 +1,5 @@
 """
-Story generation using trained Sikandar model
-Inspired by smolGPT: https://github.com/Om-Alve/smolGPT
+Text generation using trained Sikandar model
 """
 
 import argparse
@@ -58,25 +57,25 @@ def load_model(model_path: pathlib.Path, tokenizer: Tokenizer, device: torch.dev
     return model
 
 
-def generate_story(model: SikandarModel, tokenizer: Tokenizer, prompt: str,
-                   max_new_tokens: int = 200, temperature: float = 0.7,
-                   top_k: int = 50, device: torch.device = torch.device('cpu')) -> str:
+def generate_text(model: SikandarModel, tokenizer: Tokenizer, prompt: str,
+                  max_new_tokens: int = 200, temperature: float = 0.7,
+                  top_k: int = 50, device: torch.device = torch.device('cpu')) -> str:
     """
-    Generate a story continuation given a prompt
+    Generate text continuation given a prompt
 
     Args:
         model: Trained SikandarModel
         tokenizer: Tokenizer instance
-        prompt: Story beginning/prompt (e.g., "Once upon a time")
+        prompt: Text beginning/prompt (e.g., "ROMEO:" for Shakespeare)
         max_new_tokens: Maximum number of tokens to generate
         temperature: Sampling temperature (higher = more random, lower = more focused)
         top_k: Top-k sampling: only sample from top k most likely tokens
         device: Device to run on
 
     Returns:
-        Generated story text (full text including prompt)
+        Generated text (full text including prompt)
     """
-    # Encode prompt (stories don't need role prefixes)
+    # Encode prompt
     prompt_tokens = tokenizer.encode(prompt)
     input_tokens = [tokenizer.get_special_token_ids()['<BOS>']] + prompt_tokens
 
@@ -143,25 +142,25 @@ def generate_story(model: SikandarModel, tokenizer: Tokenizer, prompt: str,
         # Append to sequence for next iteration
         input_ids = torch.cat([input_ids, next_token.unsqueeze(0)], dim=1)
 
-    # Decode the full story (prompt + generated tokens)
-    full_story_tokens = prompt_tokens + generated_token_ids
-    return tokenizer.decode(full_story_tokens)
+    # Decode the full text (prompt + generated tokens)
+    full_text_tokens = prompt_tokens + generated_token_ids
+    return tokenizer.decode(full_text_tokens)
 
 
 def main():
-    """Main function for story generation"""
+    """Main function for text generation"""
     parser = argparse.ArgumentParser(
-        description="Generate stories using trained Sikandar model")
+        description="Generate text using trained Sikandar model")
     parser.add_argument('--model-path', type=str, required=True,
                         help='path to trained model checkpoint')
     parser.add_argument('--vocab-path', type=str, required=True,
                         help='path to vocabulary JSON file')
-    parser.add_argument('--prompt', type=str, default="Once upon a time",
-                        help='story beginning/prompt')
+    parser.add_argument('--prompt', type=str, default="ROMEO:",
+                        help='text beginning/prompt (e.g., "ROMEO:" for Shakespeare)')
     parser.add_argument('--num-samples', type=int, default=1,
-                        help='number of story samples to generate')
-    parser.add_argument('--max-tokens', type=int, default=200,
-                        help='maximum tokens to generate per story')
+                        help='number of text samples to generate')
+    parser.add_argument('--max-tokens', type=int, default=500,
+                        help='maximum tokens to generate per sample')
     parser.add_argument('--temperature', type=float, default=0.7,
                         help='sampling temperature (0.1-2.0, lower = more focused)')
     parser.add_argument('--top-k', type=int, default=50,
@@ -200,12 +199,12 @@ def main():
     )
     logging.info("model loaded!")
 
-    # Generate stories
+    # Generate text
     for i in range(args.num_samples):
         if args.num_samples > 1:
-            print(f"\n=== Story {i+1}/{args.num_samples} ===")
+            print(f"\n=== Sample {i+1}/{args.num_samples} ===")
 
-        story = generate_story(
+        text = generate_text(
             model=model,
             tokenizer=tokenizer,
             prompt=args.prompt,
@@ -215,7 +214,7 @@ def main():
             device=device
         )
 
-        print(story)
+        print(text)
         print()
 
 
