@@ -33,11 +33,25 @@ generate:
 	python3 generate.py \
 		--model-path output/model.pt \
 		--vocab-path output/vocab.json \
-		--prompt $(PROMPT) \
+		--prompt "$(PROMPT)" \
 		--num-samples 1 \
 		--max-tokens 500 \
 		--temperature 0.7 \
 		--top-k 50 
+
+# Generates from pretrained sikandar model
+.PHONY: sikandar
+
+sikandar:
+	@python3 generate.py \
+		--model-path pretrained/model.pt \
+		--vocab-path pretrained/vocab.json \
+		--prompt "$(PROMPT)" \
+		--num-samples 1 \
+		--max-tokens 500 \
+		--temperature 0.7 \
+		--top-k 50 \
+		--log-level ERROR
 
 .PHONY: train-small
 

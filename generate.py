@@ -173,10 +173,12 @@ def main():
                         help='number of layers (auto-loaded from checkpoint if not provided)')
     parser.add_argument('--max-len', type=int, default=None,
                         help='max sequence length (auto-loaded from checkpoint if not provided)')
+    parser.add_argument('--log-level', type=str, default='INFO',
+                        help='log level (INFO, DEBUG, WARNING, ERROR, CRITICAL)')
 
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=args.log_level)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info("using device: %s", device)
 
