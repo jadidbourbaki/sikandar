@@ -5,8 +5,8 @@ Download and prepare TinyStories dataset for story generation training
 import argparse
 import logging
 from pathlib import Path
-from datasets import load_dataset
 from dataclasses import dataclass
+from datasets import load_dataset
 
 
 @dataclass
@@ -119,9 +119,11 @@ def prepare_data() -> None:
     parser.add_argument('--output-dir', type=str, default='data',
                         help='directory to save train.txt and val.txt')
     parser.add_argument('--max-train', type=int, default=0,
-                        help='maximum number of training stories to use (0 or -1 = use full training set)')
+                        help='maximum number of training stories to use' +
+                        ' (<=0 for full training set)')
     parser.add_argument('--max-val', type=int, default=0,
-                        help='maximum number of validation stories to use (0 or -1 = use full validation set)')
+                        help='maximum number of validation stories to use' +
+                        ' (<=0 for full validation set)')
 
     args = parser.parse_args()
 

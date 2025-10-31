@@ -15,45 +15,76 @@ from tokenizer import Tokenizer
 
 
 class TextDataset(Dataset):
-    """Simple dataset that converts text to token sequences"""
+    """Simple dataset that converts text to token sequences with lazy loading"""
 
     def __init__(self, texts, tokenizer, max_length):
-        self.data = []
+        """Initialize the TextDataset"""
+        # we store the raw texts instead of pre-tokenized data
+        # to save memory. Loading the entire dataset will take
+        # more time, but we can load the data in chunks as needed.
+        self.texts = texts
         self.tokenizer = tokenizer
         self.max_length = max_length
         self.pad_id = tokenizer.get_pad_id()
 
-        for text in texts:
+        # pre-compute chunk mapping: chunk_idx -> (text_idx, chunk_offset_within_text)
+        # we need accurate chunk counts, so we do a lightweight tokenization pass
+        # but don't store the tokenized data to save memory (true lazy loading)
+        self.chunk_mapping: list[tuple[int, int]] = []
+
+        logging.info(
+            "computing chunk mapping (lazy loading: storing only indices, not tokenized data)...")
+
+        for text_idx, text in tqdm(
+                enumerate(texts), total=len(texts), desc="computing chunk mapping"):
+            # tokenize just to count chunks accurately, but don't store it
             tokens = self.tokenizer.encode_with_special_tokens(text)
-            self._chunkify(tokens)
+            num_chunks = (len(tokens) + self.max_length - 1) // self.max_length
 
-    def _chunkify(self, tokens):
-        """Chunkify tokens into max length sequences"""
-        for i in range(0, len(tokens), self.max_length):
-            chunk = tokens[i:i + self.max_length]
-            while len(chunk) < self.max_length:
-                chunk = self._pad_sequence(chunk)
+            # add mapping entries for each chunk this text will produce
+            for chunk_offset in range(num_chunks):
+                self.chunk_mapping.append((text_idx, chunk_offset))
 
-            # ensure the chunk is exactly max length
-            assert len(chunk) == self.max_length
-
-            self.data.append(chunk)
+        logging.info("chunk mapping complete: %d total chunks from %d texts",
+                     len(self.chunk_mapping), len(texts))
 
     def _pad_sequence(self, sequence):
-        """Pad sequence to max length"""
+        """pad sequence to max length"""
         return sequence + [self.pad_id] * (self.max_length - len(sequence))
 
     def __len__(self):
-        return len(self.data)
+        return len(self.chunk_mapping)
 
     def __getitem__(self, idx):
-        # For next-token prediction:
+        """Lazy loading: tokenize on-demand to save memory"""
+        # Get which text and chunk offset this index corresponds to
+        text_idx, chunk_offset = self.chunk_mapping[idx]
+
+        # Lazy tokenization: tokenize the text on-demand (not cached)
+        text = self.texts[text_idx]
+        tokens = self.tokenizer.encode_with_special_tokens(text)
+
+        # Extract the specific chunk we need
+        start_idx = chunk_offset * self.max_length
+        end_idx = start_idx + self.max_length
+        chunk = tokens[start_idx:end_idx]
+
+        # Pad if necessary (for the last chunk of a text that's shorter)
+        if len(chunk) < self.max_length:
+            chunk = self._pad_sequence(chunk)
+
+        # Ensure the chunk is exactly max length
+        assert len(chunk) == self.max_length
+
+        # convert to tensor
+        seq = torch.tensor(chunk, dtype=torch.long)
+
+        # for next-token prediction:
         # the input is [0:n-1] and the target is [1:n] (shifted by 1)
         # for example:
         # if the sequence is [1, 2, 3, 4, 5],
         # the input is [1, 2, 3, 4] and the target is [2, 3, 4, 5]
         # note that the integers in the sequence are token IDs, not words
-        seq = torch.tensor(self.data[idx], dtype=torch.long)
         return seq[:-1], seq[1:]
 
 
