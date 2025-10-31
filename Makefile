@@ -1,7 +1,7 @@
 .PHONY: prepare-data
 
 prepare-data:
-	python3 prepare_data.py --output-dir data --max-train 10000 --max-val 1000
+	python3 prepare_data.py --output-dir data --max-train 0 --max-val 0
 
 .PHONY: train
 

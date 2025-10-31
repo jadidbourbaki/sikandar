@@ -15,8 +15,8 @@ class DatasetConfig:
     name: str = "roneneldan/TinyStories"
     train_split: str = "train"
     val_split: str = "validation"
-    max_train_samples: int = 10000
-    max_val_samples: int = 1000
+    max_train_samples: int = 0  # 0 or negative = use full training set
+    max_val_samples: int = 0  # 0 or negative = use full validation set
 
 
 def prepare_dataset(output_dir: Path, dataset_config: DatasetConfig) -> None:
@@ -53,7 +53,15 @@ def prepare_dataset(output_dir: Path, dataset_config: DatasetConfig) -> None:
     val_lines = []
 
     logging.info("processing training data...")
-    train_samples = train_dataset.take(dataset_config.max_train_samples)
+    # Use full training set if max_train_samples is 0 or negative
+    if dataset_config.max_train_samples <= 0:
+        train_samples = train_dataset
+        max_train_count = len(train_dataset)
+        logging.info("using full training set: %d samples", max_train_count)
+    else:
+        train_samples = train_dataset.take(dataset_config.max_train_samples)
+        max_train_count = dataset_config.max_train_samples
+
     for i, example in enumerate(train_samples):
         # TinyStories has a 'text' field with the story
         story_text = example.get('text', example.get('story', ''))
@@ -62,11 +70,19 @@ def prepare_dataset(output_dir: Path, dataset_config: DatasetConfig) -> None:
 
         if (i + 1) % 1000 == 0:
             logging.info("processed %d/%d training stories",
-                         i + 1, dataset_config.max_train_samples)
+                         i + 1, max_train_count)
 
     logging.info("processing validation data...")
 
-    val_samples = val_dataset.take(dataset_config.max_val_samples)
+    # Use full validation set if max_val_samples is 0 or negative
+    if dataset_config.max_val_samples <= 0:
+        val_samples = val_dataset
+        max_val_count = len(val_dataset)
+        logging.info("using full validation set: %d samples", max_val_count)
+    else:
+        val_samples = val_dataset.take(dataset_config.max_val_samples)
+        max_val_count = dataset_config.max_val_samples
+
     for i, example in enumerate(val_samples):
         story_text = example.get('text', example.get('story', ''))
         if story_text and story_text.strip():
@@ -74,7 +90,7 @@ def prepare_dataset(output_dir: Path, dataset_config: DatasetConfig) -> None:
 
         if (i + 1) % 100 == 0:
             logging.info("Processed %d/%d validation stories",
-                         i + 1, dataset_config.max_val_samples)
+                         i + 1, max_val_count)
 
     # save to files
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -102,10 +118,10 @@ def prepare_data() -> None:
         description="Prepare a dataset for training")
     parser.add_argument('--output-dir', type=str, default='data',
                         help='directory to save train.txt and val.txt')
-    parser.add_argument('--max-train', type=int, default=10000,
-                        help='maximum number of training stories to use')
-    parser.add_argument('--max-val', type=int, default=1000,
-                        help='maximum number of validation stories to use')
+    parser.add_argument('--max-train', type=int, default=0,
+                        help='maximum number of training stories to use (0 or -1 = use full training set)')
+    parser.add_argument('--max-val', type=int, default=0,
+                        help='maximum number of validation stories to use (0 or -1 = use full validation set)')
 
     args = parser.parse_args()
 
