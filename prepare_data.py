@@ -1,96 +1,67 @@
 """
-Download and prepare TinyStories dataset for story generation training
+Download and prepare TinyShakespeare dataset for training
+Similar to Karpathy's nanoGPT: https://github.com/karpathy/nanoGPT
 """
 
 import argparse
 import logging
 from pathlib import Path
-from dataclasses import dataclass
 from datasets import load_dataset
 
 
-@dataclass
-class DatasetConfig:
-    """Configuration for a dataset"""
-    name: str = "roneneldan/TinyStories"
-    train_split: str = "train"
-    val_split: str = "validation"
-    max_train_samples: int = 0  # 0 or negative = use full training set
-    max_val_samples: int = 0  # 0 or negative = use full validation set
-
-
-def prepare_dataset(output_dir: Path, dataset_config: DatasetConfig) -> None:
+def prepare_dataset(output_dir: Path) -> None:
     """
-    Download dataset from HuggingFace and prepare it for training
+    Download TinyShakespeare dataset from HuggingFace and prepare it for training
+    Uses the same 90/10 train/val split as Karpathy's nanoGPT
 
     Args:
         output_dir: Directory to save train.txt and val.txt
-        max_train_samples: Maximum number of training stories to use
-        max_val_samples: Maximum number of validation stories to use
     """
 
-    logging.info(
-        "downloading %s dataset from HuggingFace...", dataset_config.name)
+    logging.info("downloading TinyShakespeare dataset from HuggingFace...")
+    dataset = load_dataset("karpathy/tiny_shakespeare")
 
-    # TinyStories dataset has 'train' and 'validation' splits
-    dataset = load_dataset(dataset_config.name)
+    # TinyShakespeare is one continuous text, typically in 'train' split
+    train_split = dataset.get("train", dataset.get("Train", None))
+    if train_split is None:
+        raise ValueError(
+            "Could not find 'train' split in TinyShakespeare dataset")
 
-    train_dataset = dataset.get(dataset_config.train_split, dataset.get(
-        dataset_config.train_split.title(), None))
-    val_dataset = dataset.get(dataset_config.val_split, dataset.get(
-        dataset_config.val_split.title(), None))
+    # Extract the text - TinyShakespeare usually has 'text' field with one entry
+    full_text = ""
+    if len(train_split) > 0:
+        # Try different ways to get the text
+        first_item = train_split[0] if isinstance(
+            train_split, list) else train_split
+        if isinstance(first_item, dict):
+            full_text = first_item.get('text', '')
+        elif isinstance(first_item, str):
+            full_text = first_item
+        else:
+            # Try accessing directly from dataset
+            full_text = train_split['text'][0] if 'text' in train_split.features else str(
+                train_split[0])
 
-    if train_dataset is None:
-        raise ValueError("Could not find training split in dataset")
-    if val_dataset is None:
-        raise ValueError("Could not find validation split in dataset")
+    if not full_text:
+        raise ValueError("Could not extract text from TinyShakespeare dataset")
 
-    logging.info("dataset loaded. train: %d samples, val: %d samples",
-                 len(train_dataset), len(val_dataset))
+    logging.info("TinyShakespeare: %d characters total", len(full_text))
 
-    # Extract story texts
-    train_lines = []
-    val_lines = []
+    # Split 90/10 for train/val (same as Karpathy's nanoGPT)
+    split_idx = int(len(full_text) * 0.9)
+    train_text = full_text[:split_idx]
+    val_text = full_text[split_idx:]
 
-    logging.info("processing training data...")
-    # Use full training set if max_train_samples is 0 or negative
-    if dataset_config.max_train_samples <= 0:
-        train_samples = train_dataset
-        max_train_count = len(train_dataset)
-        logging.info("using full training set: %d samples", max_train_count)
-    else:
-        train_samples = train_dataset.take(dataset_config.max_train_samples)
-        max_train_count = dataset_config.max_train_samples
+    # Split into lines
+    train_lines = train_text.split('\n')
+    val_lines = val_text.split('\n')
 
-    for i, example in enumerate(train_samples):
-        # TinyStories has a 'text' field with the story
-        story_text = example.get('text', example.get('story', ''))
-        if story_text and story_text.strip():
-            train_lines.append(story_text.strip())
+    # Filter empty lines
+    train_lines = [line.strip() for line in train_lines if line.strip()]
+    val_lines = [line.strip() for line in val_lines if line.strip()]
 
-        if (i + 1) % 1000 == 0:
-            logging.info("processed %d/%d training stories",
-                         i + 1, max_train_count)
-
-    logging.info("processing validation data...")
-
-    # Use full validation set if max_val_samples is 0 or negative
-    if dataset_config.max_val_samples <= 0:
-        val_samples = val_dataset
-        max_val_count = len(val_dataset)
-        logging.info("using full validation set: %d samples", max_val_count)
-    else:
-        val_samples = val_dataset.take(dataset_config.max_val_samples)
-        max_val_count = dataset_config.max_val_samples
-
-    for i, example in enumerate(val_samples):
-        story_text = example.get('text', example.get('story', ''))
-        if story_text and story_text.strip():
-            val_lines.append(story_text.strip())
-
-        if (i + 1) % 100 == 0:
-            logging.info("Processed %d/%d validation stories",
-                         i + 1, max_val_count)
+    logging.info("split TinyShakespeare: %d train lines, %d val lines",
+                 len(train_lines), len(val_lines))
 
     # save to files
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -113,29 +84,17 @@ def prepare_dataset(output_dir: Path, dataset_config: DatasetConfig) -> None:
 
 
 def prepare_data() -> None:
-    """Prepare a dataset for training"""
+    """Prepare TinyShakespeare dataset for training"""
     parser = argparse.ArgumentParser(
-        description="Prepare a dataset for training")
+        description="Prepare TinyShakespeare dataset for training")
     parser.add_argument('--output-dir', type=str, default='data',
                         help='directory to save train.txt and val.txt')
-    parser.add_argument('--max-train', type=int, default=0,
-                        help='maximum number of training stories to use' +
-                        ' (<=0 for full training set)')
-    parser.add_argument('--max-val', type=int, default=0,
-                        help='maximum number of validation stories to use' +
-                        ' (<=0 for full validation set)')
 
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
 
-    prepare_dataset(
-        output_dir=Path(args.output_dir),
-        dataset_config=DatasetConfig(
-            max_train_samples=args.max_train,
-            max_val_samples=args.max_val
-        )
-    )
+    prepare_dataset(output_dir=Path(args.output_dir))
 
 
 if __name__ == '__main__':

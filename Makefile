@@ -1,7 +1,7 @@
 .PHONY: prepare-data
 
 prepare-data:
-	python3 prepare_data.py --output-dir data --max-train 0 --max-val 0
+	python3 prepare_data.py --output-dir data
 
 .PHONY: train
 
@@ -11,13 +11,13 @@ train: prepare-data
 		--val-data data/val.txt \
 		--output-dir output \
 		--vocab-size 5000 \
-		--d-model 256 \
-		--num-heads 8 \
-		--num-layers 4 \
-		--max-len 128 \
-		--batch-size 8 \
-		--learning-rate 3e-4 \
-		--num-epochs 50
+		--d-model 384 \
+		--num-heads 6 \
+		--num-layers 6 \
+		--max-len 256 \
+		--batch-size 64 \
+		--learning-rate 1e-3 \
+		--num-epochs 100
 
 .PHONY: chat
 
@@ -38,6 +38,22 @@ generate:
 		--max-tokens 200 \
 		--temperature 0.7 \
 		--top-k 50 
+
+.PHONY: train-small
+
+train-small: prepare-data
+	python3 train.py \
+		--train-data data/train.txt \
+		--val-data data/val.txt \
+		--output-dir output \
+		--vocab-size 5000 \
+		--d-model 256 \
+		--num-heads 8 \
+		--num-layers 4 \
+		--max-len 128 \
+		--batch-size 16 \
+		--learning-rate 3e-4 \
+		--num-epochs 50
 
 .PHONY: test
 
