@@ -11,7 +11,7 @@ def generate_text(prompt: str) -> str:
     # system call for the make target sikandar
     result = subprocess.run(["make", "sikandar", f"PROMPT={prompt}"],
                             capture_output=True, text=True, check=True)
-    return result.stdout
+    return result.stdout.strip()
 
 
 def sikandar_loop() -> None:
